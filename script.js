@@ -42,9 +42,10 @@ window.addEventListener("resize", resizeCanvas);
 
 // --- 파티클 클래스 ---
 class DustParticle {
-  constructor(src, type) {
-    this.x = Math.random() * WORLD_SIZE;
-    this.y = Math.random() * WORLD_SIZE;
+  constructor(src, type, customX, customY) {
+    // customX, customY가 전달되면 그 좌표를 쓰고, 없으면 무작위 지정
+    this.x = customX !== undefined ? customX : Math.random() * WORLD_SIZE;
+    this.y = customY !== undefined ? customY : Math.random() * WORLD_SIZE;
     this.src = src;
     this.type = type;
 
@@ -165,6 +166,7 @@ async function loadDataAndInit() {
 
     particles = [];
 
+    // 1. 일반 이미지 파티클 배치 (기존 동일)
     if (data.images) {
       data.images.forEach((src) => {
         for (let i = 0; i < 2; i++) {
@@ -173,9 +175,39 @@ async function loadDataAndInit() {
       });
     }
 
+    // 2. 비디오 파티클 배치 (서로 뭉치지 않게 거리 보장)
+    // 2. 비디오 파티클 배치 (첫 번째 비디오는 화면 중앙 근처에 보장!)
     if (data.videos) {
-      data.videos.forEach((src) => {
-        particles.push(new DustParticle(src, "video"));
+      const existingVideoParticles = [];
+      const MIN_DISTANCE = 2500; // 파티클 간 최소 거리
+
+      data.videos.forEach((src, index) => {
+        let x, y, isTooClose;
+        let attempts = 0;
+
+        if (index === 0) {
+          // 💡 첫 번째 영상 파티클은 카메라 시작 위치(화면 중앙) 근처 600px 범위 내에 무작위 배치!
+          const centerOffset = 600;
+          x = WORLD_SIZE / 2 + (Math.random() - 0.5) * centerOffset;
+          y = WORLD_SIZE / 2 + (Math.random() - 0.5) * centerOffset;
+        } else {
+          // 두 번째 영상부터는 서로 뭉치지 않게 거리 보장
+          do {
+            x = Math.random() * (WORLD_SIZE - 400) + 200;
+            y = Math.random() * (WORLD_SIZE - 400) + 200;
+
+            isTooClose = existingVideoParticles.some((p) => {
+              const dist = Math.hypot(p.x - x, p.y - y);
+              return dist < MIN_DISTANCE;
+            });
+
+            attempts++;
+          } while (isTooClose && attempts < 50);
+        }
+
+        const videoParticle = new DustParticle(src, "video", x, y);
+        particles.push(videoParticle);
+        existingVideoParticles.push(videoParticle);
       });
     }
 
