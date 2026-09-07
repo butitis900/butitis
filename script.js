@@ -166,43 +166,48 @@ async function loadDataAndInit() {
 
     particles = [];
 
-    // 1. 일반 이미지 파티클 배치 (기존 동일)
+    // 1. 일반 이미지 파티클 배치 (1:1 비율)
     if (data.images) {
       data.images.forEach((src) => {
-        for (let i = 0; i < 2; i++) {
-          particles.push(new DustParticle(src, "image"));
-        }
+        particles.push(new DustParticle(src, "image"));
       });
     }
 
-    // 2. 비디오 파티클 배치 (서로 뭉치지 않게 거리 보장)
-    // 2. 비디오 파티클 배치 (첫 번째 비디오는 화면 중앙 근처에 보장!)
-    if (data.videos) {
+    // 2. 비디오 파티클 배치 (개수가 늘어나도 100% 모두 배치되는 개선 로직)
+    if (data.videos && data.videos.length > 0) {
       const existingVideoParticles = [];
-      const MIN_DISTANCE = 2500; // 파티클 간 최소 거리
+      const totalVideos = data.videos.length;
+
+      // 비디오 개수에 따라 최소 거리를 동적으로 계산 (기본 2200px ~ 최소 800px)
+      let minDistance = Math.max(800, 2500 - totalVideos * 150);
 
       data.videos.forEach((src, index) => {
         let x, y, isTooClose;
         let attempts = 0;
+        let currentMinDist = minDistance;
 
         if (index === 0) {
-          // 💡 첫 번째 영상 파티클은 카메라 시작 위치(화면 중앙) 근처 600px 범위 내에 무작위 배치!
+          // 첫 번째 영상은 화면 중앙(카메라 시작 위치) 근처 600px 범위 내 배치
           const centerOffset = 600;
           x = WORLD_SIZE / 2 + (Math.random() - 0.5) * centerOffset;
           y = WORLD_SIZE / 2 + (Math.random() - 0.5) * centerOffset;
         } else {
-          // 두 번째 영상부터는 서로 뭉치지 않게 거리 보장
           do {
-            x = Math.random() * (WORLD_SIZE - 400) + 200;
-            y = Math.random() * (WORLD_SIZE - 400) + 200;
+            x = Math.random() * (WORLD_SIZE - 600) + 300;
+            y = Math.random() * (WORLD_SIZE - 600) + 300;
 
             isTooClose = existingVideoParticles.some((p) => {
               const dist = Math.hypot(p.x - x, p.y - y);
-              return dist < MIN_DISTANCE;
+              return dist < currentMinDist;
             });
 
             attempts++;
-          } while (isTooClose && attempts < 50);
+
+            // 30번 이상 자리 찾기에 실패하면 거리를 10%씩 줄여서 자리를 반드시 확보
+            if (attempts > 30) {
+              currentMinDist *= 0.9;
+            }
+          } while (isTooClose && attempts < 100);
         }
 
         const videoParticle = new DustParticle(src, "video", x, y);
