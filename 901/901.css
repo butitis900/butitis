@@ -1,0 +1,35 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body {
+  width: 100%;
+  min-height: 100%;
+  background-color: #ffffff;
+  color: #000000;
+  overflow-x: hidden; /* 가로 삐져나옴만 방지하고 세로 스크롤은 허용 */
+  overflow-y: auto;
+  user-select: none;
+}
+
+#canvas {
+  position: relative;
+  width: 100%;
+  min-height: 1000vh; /* 훨씬 긴 세로 스크롤 확보 */
+}
+
+.sentence {
+  font-size: 12px;
+  letter-spacing: -0.02em;
+  position: absolute;
+  color: #000000;
+  white-space: nowrap;
+  pointer-events: none;
+  overflow: hidden;
+  display: inline-block;
+  width: 240vw;
+  padding: 0.04em 0 0.02em 0;
+}
